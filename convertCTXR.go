@@ -1,9 +1,9 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"os"
-	"encoding/binary"
 )
 
 func check(e error) {
@@ -13,7 +13,7 @@ func check(e error) {
 }
 
 func main() {
-	if len(os.Args) < 2{
+	if len(os.Args) < 2 {
 		fmt.Println("Please provide image(s) to convert.")
 		os.Exit(0)
 	}
@@ -31,7 +31,7 @@ func convertCTXRFileToPAM(filename string) {
 
 	// TODO currently ignoring the rest of the header! Assuming it's a particular kind of CTXR
 	// Hardcoded values from CTXR header
-	widthIndex :=  int64(0x2c)
+	widthIndex := int64(0x2c)
 	heightIndex := int64(0x2e)
 	headerSize := int64(0x80)
 	depth := uint16(4) // Assuming input is ARGB for a depth of 4
@@ -49,25 +49,25 @@ func convertCTXRFileToPAM(filename string) {
 
 	// Read raster image data into buffer
 	fInfo, err := f.Stat()
-	buf := make([]byte, fInfo.Size() - headerSize)
+	buf := make([]byte, fInfo.Size()-headerSize)
 	f.ReadAt(buf, headerSize)
 
 	// Convert raster from ARGB to RGBA
-	for i := int64(0); i < int64(len(buf) - 4); i+=4 {
+	for i := int64(0); i < int64(len(buf)-depth); i += depth {
 		alpha := buf[i]
 		red := buf[i+1]
 		green := buf[i+2]
 		blue := buf[i+3]
 		//debug
 		// if i == 0 {
-		// 	fmt.Printf("pixel: %x\n", buf[i:4])
+		// 	fmt.Printf("pixel: %x\n", buf[i:depth])
 		// }
 		buf[i] = red
 		buf[i+1] = green
 		buf[i+2] = blue
 		buf[i+3] = alpha
 		// if i == 0 {
-		// 	fmt.Printf("pixel: %x\n", buf[i:4])
+		// 	fmt.Printf("pixel: %x\n", buf[i:depth])
 		// }
 	}
 
@@ -77,13 +77,13 @@ func convertCTXRFileToPAM(filename string) {
 	defer nf.Close()
 
 	// Generate PAM header
-	header := "P7\n" + 
-			  fmt.Sprintf("WIDTH %d\n", width) +
-			  fmt.Sprintf("HEIGHT %d\n", height) +
-			  fmt.Sprintf("DEPTH %d\n", depth) +
-			  "MAXVAL 255\n" + 
-			  "TUPLTYPE RGB_ALPHA\n" + 
-			  "ENDHDR\n"
+	header := "P7\n" +
+		fmt.Sprintf("WIDTH %d\n", width) +
+		fmt.Sprintf("HEIGHT %d\n", height) +
+		fmt.Sprintf("DEPTH %d\n", depth) +
+		"MAXVAL 255\n" +
+		"TUPLTYPE RGB_ALPHA\n" +
+		"ENDHDR\n"
 
 	// Write PAM to file
 	nf.WriteString(header)
